@@ -1,9 +1,33 @@
 import irsdk
 import time
 import csv
+import json
+import requests
 from datetime import datetime
 
 ir = irsdk.IRSDK()
+
+def load_config(path='config.json'):
+    with open(path) as f:
+        return json.load(f)
+
+def get_session_type():
+    sessions = ir['SessionInfo']['Sessions']
+    current_num = ir['SessionNum']
+    return sessions[current_num]['SessionType']
+
+def post_incident(endpoint, subsession_id, session_type, cust_id, lap_no, track_pct):
+    payload = {
+        'subsession_id': subsession_id,
+        'session_type': session_type,
+        'cust_id': cust_id,
+        'lap_no': lap_no,
+        'track_pct': track_pct,
+    }
+    try:
+        requests.post(endpoint, json=payload, timeout=5)
+    except requests.RequestException as e:
+        print(f"API post failed: {e}")
 
 # Master Map: Add your custom corner ranges here for each track
 TRACK_LIBRARY = {
@@ -67,6 +91,10 @@ def get_corner_name(dist_pct, track_name):
 def log_incidents_to_csv():
     if not ir.startup():
         return
+
+    config = load_config()
+    api_endpoint = config['api_endpoint']
+    subsession_id = ir['WeekendInfo']['SubSessionID']
 
     # Identify the track once at the start
     current_track = get_track_name()
@@ -140,6 +168,7 @@ def log_incidents_to_csv():
                             writer.writerow([round(session_time, 2), timestamp, lap, race_pos, car_number, corner, track_pct, name, cust_id])
                             f.flush()
 
+                            post_incident(api_endpoint, subsession_id, get_session_type(), cust_id, lap, track_pct)
                             print(f"Race Time {timestamp} | P{race_pos} | Car #{car_number} | Lap {lap} | {corner} ({track_pct}) | {name} ({cust_id}) OFF TRACK")
                             last_logged_time[idx] = session_time
 
