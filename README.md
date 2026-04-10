@@ -37,8 +37,10 @@ A dark-mode desktop app that monitors a live iRacing session and logs off-track 
 - Live connection status showing track name, subsession ID, and session type
 - Start/Stop logging button (enabled only when connected)
 - Real-time incident feed in the UI
+- Resizable window
+- **App > Settings** menu to edit `config.json` values (API endpoint) without restarting
 - Writes incidents to `incidents_<track>_<HHMMSS>.csv`
-- Optionally POSTs each incident to a REST API endpoint (configured via `config.json`)
+- Optionally POSTs each incident to a REST API endpoint (configured via Settings or `config.json` directly)
 
 **Usage:**
 ```bash

@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tkinter as tk
 import threading
 import queue
 import time
@@ -51,9 +52,15 @@ TRACK_LIBRARY = {
 
 # ── Utility functions ────────────────────────────────────────────────────────
 
-def load_config(path='config.json'):
+CONFIG_PATH = 'config.json'
+
+def load_config(path=CONFIG_PATH):
     with open(path) as f:
         return json.load(f)
+
+def save_config(data, path=CONFIG_PATH):
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=4)
 
 def get_corner_name(dist_pct, track_name):
     if track_name in TRACK_LIBRARY:
@@ -86,7 +93,13 @@ class IRacingApp:
         self.csv_file = None
         self.csv_writer = None
 
+        try:
+            self.config = load_config()
+        except Exception:
+            self.config = {'api_endpoint': ''}
+
         self.build_gui()
+        self.build_menu()
         self.poll_queue()
 
         t = threading.Thread(target=self.background_thread, daemon=True)
@@ -95,7 +108,7 @@ class IRacingApp:
     # ── GUI construction ─────────────────────────────────────────────────────
 
     def build_gui(self):
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
 
         # Header frame
         header = ctk.CTkFrame(self.root, corner_radius=0)
@@ -133,6 +146,44 @@ class IRacingApp:
         self.feed = ctk.CTkTextbox(feed_frame, state='disabled', width=700, height=400,
                                    font=ctk.CTkFont(family='Courier', size=11))
         self.feed.pack(fill='both', expand=True)
+
+    def build_menu(self):
+        menubar = tk.Menu(self.root)
+        app_menu = tk.Menu(menubar, tearoff=0)
+        app_menu.add_command(label="Settings", command=self.open_settings)
+        menubar.add_cascade(label="App", menu=app_menu)
+        self.root.configure(menu=menubar)
+
+    def open_settings(self):
+        win = ctk.CTkToplevel(self.root)
+        win.title("Settings")
+        win.resizable(False, False)
+        win.grab_set()  # modal
+
+        ctk.CTkLabel(win, text="Settings", font=ctk.CTkFont(size=14, weight='bold')).grid(
+            row=0, column=0, columnspan=2, padx=20, pady=(16, 8), sticky='w')
+
+        ctk.CTkLabel(win, text="API Endpoint:").grid(
+            row=1, column=0, padx=(20, 8), pady=8, sticky='w')
+        entry_endpoint = ctk.CTkEntry(win, width=340)
+        entry_endpoint.insert(0, self.config.get('api_endpoint', ''))
+        entry_endpoint.grid(row=1, column=1, padx=(0, 20), pady=8)
+
+        def save():
+            self.config['api_endpoint'] = entry_endpoint.get().strip()
+            try:
+                save_config(self.config)
+            except Exception as e:
+                ctk.CTkLabel(win, text=f"Save failed: {e}", text_color='#cc4444').grid(
+                    row=3, column=0, columnspan=2, padx=20, pady=(0, 8))
+                return
+            win.destroy()
+
+        btn_frame = ctk.CTkFrame(win, fg_color='transparent')
+        btn_frame.grid(row=2, column=0, columnspan=2, pady=(4, 16))
+        ctk.CTkButton(btn_frame, text="Save", width=100, command=save).pack(side='left', padx=6)
+        ctk.CTkButton(btn_frame, text="Cancel", width=100, fg_color='gray30',
+                      hover_color='gray40', command=win.destroy).pack(side='left', padx=6)
 
     # ── Logging toggle ───────────────────────────────────────────────────────
 
@@ -191,12 +242,6 @@ class IRacingApp:
     # ── Background telemetry thread ──────────────────────────────────────────
 
     def background_thread(self):
-        try:
-            config = load_config()
-            api_endpoint = config.get('api_endpoint', '')
-        except Exception:
-            api_endpoint = ''
-
         last_logged_time = {}
         last_known_lap = {}
         last_surface_state = {}
@@ -301,6 +346,7 @@ class IRacingApp:
                                 car_number, corner, track_pct, name, cust_id,
                             ])
                             self.csv_file.flush()
+                            api_endpoint = self.config.get('api_endpoint', '')
                             if api_endpoint:
                                 post_incident(api_endpoint, subsession_id,
                                               session_type, cust_id, lap, track_pct)
@@ -318,7 +364,7 @@ class IRacingApp:
 
 def main():
     root = ctk.CTk()
-    root.title("iRacing Incident Logger")
+    root.title("iRacing Off-Track Logger")
     IRacingApp(root)
     root.mainloop()
 

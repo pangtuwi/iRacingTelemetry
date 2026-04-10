@@ -24,7 +24,9 @@ Python tools using pyirsdk to interface with iRacing and generate data for analy
 - `ir['DriverInfo']['Drivers']` gives the full driver list with `CarIdx` mappings
 - Surface state: `0` = off-track, `3` = on-track; detect transition `current==0 and previous!=0`
 - GUI app uses `threading.Thread` (daemon) + `queue.Queue` to pass messages to the main thread
-- `load_config('config.json')` → `config['api_endpoint']` for the POST endpoint
+- `load_config('config.json')` / `save_config(data)` — read/write `config.json`
+- `self.config` on `IRacingApp` holds live config; background thread reads from it so changes apply without restart
+- Settings dialog: `App > Settings` menu (standard `tk.Menu` on the `CTk` root); modal `CTkToplevel`
 - `post_incident(endpoint, subsession_id, session_type, cust_id, lap, track_pct)` — fire-and-forget POST
 
 ## Conventions
