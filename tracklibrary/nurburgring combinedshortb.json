@@ -1,0 +1,22 @@
+{
+    "Sabine Schmitz Kurve": [0.01, 0.03],
+    "Valvoline-Kurve": [0.05, 0.07],
+    "Opel-Kurve": [0.09, 0.11],
+    "Hatzenbach": [0.13, 0.16],
+    "Hocheichen": [0.17, 0.19],
+    "Flugplatz": [0.22, 0.25],
+    "Schwedenkreuz": [0.28, 0.30],
+    "Aremberg": [0.31, 0.33],
+    "Adenauer Forst": [0.38, 0.41],
+    "Metzgesfeld": [0.44, 0.46],
+    "Wehrseifen": [0.51, 0.53],
+    "Ex-Mühle": [0.55, 0.57],
+    "Bergwerk": [0.61, 0.63],
+    "Kesselchen": [0.66, 0.69],
+    "Karussell": [0.72, 0.75],
+    "Hohe Acht": [0.78, 0.81],
+    "Pflanzgarten": [0.84, 0.87],
+    "Schwalbenschwanz": [0.90, 0.93],
+    "Döttinger Höhe (Straight)": [0.94, 0.98],
+    "Tiergarten": [0.98, 0.99]
+}

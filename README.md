@@ -34,13 +34,14 @@ Leave `api_endpoint` as an empty string to disable API posting.
 A dark-mode desktop app that monitors a live iRacing session and logs off-track incidents.
 
 **Features:**
-- Live connection status showing track name, subsession ID, and session type
+- Live connection status showing track name, subsession ID, session type, and live race time
 - Start/Stop logging button (enabled only when connected)
-- Real-time incident feed in the UI
+- Real-time incident feed showing race time, position, car number, cust ID, driver name, lap, and track %
 - Resizable window
 - **App > Settings** menu to edit `config.json` values (API endpoint) without restarting
 - Writes incidents to `incidents_<track>_<HHMMSS>.csv`
 - Optionally POSTs each incident to a REST API endpoint (configured via Settings or `config.json` directly)
+- Correctly resets state on session change (e.g. practice → race) to avoid negative race timestamps
 
 **Usage:**
 ```bash
@@ -84,17 +85,19 @@ Output: `incidents_<trackname>_<HHMMSS>_summary.csv` with columns `CustID`, `Dri
 
 ### Adding Track Corner Maps
 
-Edit `TRACK_LIBRARY` in `app.py` or `proofofconcept.py` to add corner ranges for a track. Values are fractions of total track length (0.0–1.0):
+Track corner maps live in the `tracklibrary/` folder as individual JSON files. The filename must match the iRacing internal track name exactly (as reported by `WeekendInfo.TrackName`).
 
-```python
-TRACK_LIBRARY = {
-    "lagunaseca": {
-        "Turn 1": (0.04, 0.07),
-        "Andretti Hairpin": (0.13, 0.18),
-        "The Corkscrew": (0.65, 0.70),
-    }
+Create `tracklibrary/<trackname>.json`:
+
+```json
+{
+    "Turn 1": [0.04, 0.07],
+    "Andretti Hairpin": [0.13, 0.18],
+    "The Corkscrew": [0.65, 0.70]
 }
 ```
+
+Values are `[start, end]` as fractions of total track length (0.0–1.0). Ranges use an exclusive upper bound, so adjacent entries should share a boundary value without overlap. If no file exists for the current track, all incidents are logged as `Straight/Other`.
 
 ## Notes
 

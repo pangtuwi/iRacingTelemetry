@@ -5,6 +5,7 @@ import queue
 import time
 import csv
 import json
+import os
 import requests
 import irsdk
 from datetime import datetime
@@ -14,41 +15,19 @@ ctk.set_default_color_theme("blue")
 
 # ── Track library ────────────────────────────────────────────────────────────
 
-TRACK_LIBRARY = {
-    "lagunaseca": {
-        "Turn 1": (0.04, 0.07),
-        "Andretti Hairpin": (0.13, 0.18),
-        "The Corkscrew": (0.65, 0.70),
-    },
-    "spa": {
-        "La Source": (0.01, 0.05),
-        "Eau Rouge": (0.11, 0.15),
-        "Raidillon": (0.15, 0.18),
-        "Pouhon": (0.55, 0.60),
-    },
-    "nurburgring combinedshortb": {
-        "Sabine Schmitz Kurve": (0.01, 0.03),
-        "Valvoline-Kurve": (0.05, 0.07),
-        "Opel-Kurve": (0.09, 0.11),
-        "Hatzenbach": (0.13, 0.16),
-        "Hocheichen": (0.17, 0.19),
-        "Flugplatz": (0.22, 0.25),
-        "Schwedenkreuz": (0.28, 0.30),
-        "Aremberg": (0.31, 0.33),
-        "Adenauer Forst": (0.38, 0.41),
-        "Metzgesfeld": (0.44, 0.46),
-        "Wehrseifen": (0.51, 0.53),
-        "Ex-Mühle": (0.55, 0.57),
-        "Bergwerk": (0.61, 0.63),
-        "Kesselchen": (0.66, 0.69),
-        "Karussell": (0.72, 0.75),
-        "Hohe Acht": (0.78, 0.81),
-        "Pflanzgarten": (0.84, 0.87),
-        "Schwalbenschwanz": (0.90, 0.93),
-        "Döttinger Höhe (Straight)": (0.94, 0.98),
-        "Tiergarten": (0.98, 0.99),
-    },
-}
+TRACK_LIBRARY_DIR = 'tracklibrary'
+_track_cache = {}
+
+def load_track(track_name):
+    if track_name in _track_cache:
+        return _track_cache[track_name]
+    path = os.path.join(TRACK_LIBRARY_DIR, f"{track_name}.json")
+    try:
+        with open(path) as f:
+            _track_cache[track_name] = json.load(f)
+    except FileNotFoundError:
+        _track_cache[track_name] = {}
+    return _track_cache[track_name]
 
 # ── Utility functions ────────────────────────────────────────────────────────
 
@@ -63,17 +42,18 @@ def save_config(data, path=CONFIG_PATH):
         json.dump(data, f, indent=4)
 
 def get_corner_name(dist_pct, track_name):
-    if track_name in TRACK_LIBRARY:
-        for corner, (start, end) in TRACK_LIBRARY[track_name].items():
-            if start <= dist_pct <= end:
-                return corner
+    for corner, (start, end) in load_track(track_name).items():
+        if start <= dist_pct < end:
+            return corner
     return "Straight/Other"
 
-def post_incident(endpoint, subsession_id, session_type, cust_id, lap_no, track_pct):
+def post_incident(endpoint, subsession_id, session_type, cust_id, driver_name, race_time, lap_no, track_pct):
     payload = {
         'subsession_id': subsession_id,
         'session_type': session_type,
         'cust_id': cust_id,
+        'driver_name': driver_name,
+        'race_time': race_time,
         'lap_no': lap_no,
         'track_pct': track_pct,
     }
@@ -130,6 +110,11 @@ class IRacingApp:
         self.lbl_session_type = ctk.CTkLabel(header, text="Type: —", text_color='gray',
                                              font=ctk.CTkFont(size=12))
         self.lbl_session_type.grid(row=1, column=1, sticky='w', padx=(0, 20), pady=(2, 8))
+
+        header.columnconfigure(2, weight=1)
+        self.lbl_race_time = ctk.CTkLabel(header, text="Race Time: —", text_color='gray',
+                                          font=ctk.CTkFont(size=12, weight='bold'))
+        self.lbl_race_time.grid(row=0, column=2, rowspan=2, sticky='e', padx=(0, 16))
 
         # Button frame
         btn_frame = ctk.CTkFrame(self.root, corner_radius=0, fg_color='transparent')
@@ -226,9 +211,12 @@ class IRacingApp:
                     self.lbl_track.configure(text="Track: —", text_color='gray')
                     self.lbl_subsession.configure(text="SubSession: —", text_color='gray')
                     self.lbl_session_type.configure(text="Type: —", text_color='gray')
+                    self.lbl_race_time.configure(text="Race Time: —", text_color='gray')
                     self.btn_log.configure(state='disabled')
                     if self.logging_active:
                         self.toggle_logging()
+                elif msg[0] == 'racetime':
+                    self.lbl_race_time.configure(text=f"Race Time: {msg[1]}", text_color='white')
                 elif msg[0] == 'incident':
                     line = msg[1]
                     self.feed.configure(state='normal')
@@ -248,6 +236,7 @@ class IRacingApp:
         finished_cars = set()
         race_start_time = None
         seeded = False
+        last_session_num = None
 
         while True:
             if not self.ir.is_connected:
@@ -260,6 +249,7 @@ class IRacingApp:
                     last_surface_state.clear()
                     finished_cars.clear()
                     race_start_time = None
+                    last_session_num = None
                     time.sleep(1)
                     continue
 
@@ -280,6 +270,16 @@ class IRacingApp:
                 time.sleep(1)
                 continue
 
+            # Reset all state when the session changes (e.g. practice → race)
+            if current_num != last_session_num:
+                last_session_num = current_num
+                seeded = False
+                last_logged_time.clear()
+                last_known_lap.clear()
+                last_surface_state.clear()
+                finished_cars.clear()
+                race_start_time = None
+
             self.q.put(('status', 'connected', track, subsession_id, session_type))
 
             # Telemetry arrays
@@ -299,6 +299,14 @@ class IRacingApp:
             # Track race start
             if race_start_time is None and self.ir['SessionState'] == 4:
                 race_start_time = session_time
+
+            # Update race time display
+            if race_start_time is not None:
+                re = session_time - race_start_time
+                rt = (f"{int(re // 3600):02d}:"
+                      f"{int((re % 3600) // 60):02d}:"
+                      f"{int(re % 60):02d}")
+                self.q.put(('racetime', rt))
 
             for driver in drivers:
                 idx = driver['CarIdx']
@@ -349,10 +357,11 @@ class IRacingApp:
                             api_endpoint = self.config.get('api_endpoint', '')
                             if api_endpoint:
                                 post_incident(api_endpoint, subsession_id,
-                                              session_type, cust_id, lap, track_pct)
+                                              session_type, cust_id, name, timestamp, lap, track_pct)
 
                         line = (f"{timestamp} | P{race_pos} | #{car_number} "
-                                f"| Lap {lap} | {corner} | {name}")
+                                f"| {cust_id} | {name}"
+                                f"| Lap {lap} | {track_pct*100:.2f}%")
                         self.q.put(('incident', line))
                         last_logged_time[idx] = session_time
 

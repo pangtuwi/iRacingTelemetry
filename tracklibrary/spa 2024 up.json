@@ -1,0 +1,101 @@
+{ "Straight 0-1 (Start)": [
+        0.0,
+        0.03
+    ],
+    "Turn 1 (La Source)": [
+        0.03,
+        0.05
+    ],
+    "Straight 1-2 (Downhill)": [
+        0.05,
+        0.1
+    ],
+    "Turns 2-4 (Eau Rouge/Raidillon)": [
+        0.11,
+        0.15
+    ],
+    "Straight 4-5 (Kemmel Straight)": [
+        0.15,
+        0.3
+    ],
+    "Turns 5-6 (Les Combes)": [
+        0.31,
+        0.33
+    ],
+    "Straight 6-7": [
+        0.33,
+        0.34
+    ],
+    "Turn 7 (Malmedy)": [
+        0.34,
+        0.36
+    ],
+    "Straight 7-8": [
+        0.36,
+        0.4
+    ],
+    "Turn 8 (Bruxelles)": [
+        0.41,
+        0.43
+    ],
+    "Straight 8-9": [
+        0.43,
+        0.44
+    ],
+    "Turn 9 (Speaker's Corner)": [
+        0.44,
+        0.46
+    ],
+    "Straight 9-10": [
+        0.46,
+        0.5
+    ],
+    "Turns 10-11 (Pouhon)": [
+        0.51,
+        0.55
+    ],
+    "Straight 11-12": [
+        0.55,
+        0.59
+    ],
+    "Turns 12-13 (Fagnes)": [
+        0.6,
+        0.63
+    ],
+    "Straight 13-14": [
+        0.63,
+        0.68
+    ],
+    "Turn 14 (Stavelot)": [
+        0.69,
+        0.71
+    ],
+    "Straight 14-15": [
+        0.71,
+        0.73
+    ],
+    "Turn 15 (Courbe Paul Frere)": [
+        0.74,
+        0.76
+    ],
+    "Straight 15-16": [
+        0.76,
+        0.83
+    ],
+    "Turns 16-17 (Blanchimont)": [
+        0.84,
+        0.88
+    ],
+    "Straight 17-18": [
+        0.88,
+        0.94
+    ],
+    "Turns 18-19 (Bus Stop Chicane)": [
+        0.95,
+        0.98
+    ],
+    "Straight 19-1 (Start/Finish)": [
+        0.98,
+        1.0
+    ]
+}
