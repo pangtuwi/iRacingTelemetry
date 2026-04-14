@@ -47,7 +47,7 @@ def get_corner_name(dist_pct, track_name):
             return corner
     return "Straight/Other"
 
-def post_incident(endpoint, subsession_id, session_type, cust_id, driver_name, race_time, lap_no, track_pct):
+def post_incident(endpoint, subsession_id, session_type, cust_id, driver_name, race_time, lap_no, track_pct, corner):
     payload = {
         'subsession_id': subsession_id,
         'session_type': session_type,
@@ -56,6 +56,7 @@ def post_incident(endpoint, subsession_id, session_type, cust_id, driver_name, r
         'race_time': race_time,
         'lap_no': lap_no,
         'track_pct': track_pct,
+        'corner': corner,
     }
     try:
         requests.post(endpoint, json=payload, timeout=5)
@@ -154,18 +155,31 @@ class IRacingApp:
         entry_endpoint.insert(0, self.config.get('api_endpoint', ''))
         entry_endpoint.grid(row=1, column=1, padx=(0, 20), pady=8)
 
+        ctk.CTkLabel(win, text="Min Off-Track Duration (s):").grid(
+            row=2, column=0, padx=(20, 8), pady=8, sticky='w')
+        entry_min_dur = ctk.CTkEntry(win, width=100)
+        entry_min_dur.insert(0, str(self.config.get('min_offtrack_seconds', 0.0)))
+        entry_min_dur.grid(row=2, column=1, padx=(0, 20), pady=8, sticky='w')
+
         def save():
+            try:
+                min_dur = float(entry_min_dur.get().strip())
+            except ValueError:
+                ctk.CTkLabel(win, text="Duration must be a number.", text_color='#cc4444').grid(
+                    row=4, column=0, columnspan=2, padx=20, pady=(0, 8))
+                return
             self.config['api_endpoint'] = entry_endpoint.get().strip()
+            self.config['min_offtrack_seconds'] = min_dur
             try:
                 save_config(self.config)
             except Exception as e:
                 ctk.CTkLabel(win, text=f"Save failed: {e}", text_color='#cc4444').grid(
-                    row=3, column=0, columnspan=2, padx=20, pady=(0, 8))
+                    row=4, column=0, columnspan=2, padx=20, pady=(0, 8))
                 return
             win.destroy()
 
         btn_frame = ctk.CTkFrame(win, fg_color='transparent')
-        btn_frame.grid(row=2, column=0, columnspan=2, pady=(4, 16))
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=(4, 16))
         ctk.CTkButton(btn_frame, text="Save", width=100, command=save).pack(side='left', padx=6)
         ctk.CTkButton(btn_frame, text="Cancel", width=100, fg_color='gray30',
                       hover_color='gray40', command=win.destroy).pack(side='left', padx=6)
@@ -233,6 +247,7 @@ class IRacingApp:
         last_logged_time = {}
         last_known_lap = {}
         last_surface_state = {}
+        offtrack_since = {}
         finished_cars = set()
         race_start_time = None
         seeded = False
@@ -247,6 +262,7 @@ class IRacingApp:
                     last_logged_time.clear()
                     last_known_lap.clear()
                     last_surface_state.clear()
+                    offtrack_since.clear()
                     finished_cars.clear()
                     race_start_time = None
                     last_session_num = None
@@ -277,6 +293,7 @@ class IRacingApp:
                 last_logged_time.clear()
                 last_known_lap.clear()
                 last_surface_state.clear()
+                offtrack_since.clear()
                 finished_cars.clear()
                 race_start_time = None
 
@@ -330,8 +347,17 @@ class IRacingApp:
                 current_surface = surfaces[idx]
                 previous_surface = last_surface_state.get(idx, 3)
 
-                if current_surface == 0 and previous_surface != 0:
-                    if session_time > last_logged_time.get(idx, -5) + 2:
+                if current_surface == -1:
+                    if previous_surface != -1:
+                        offtrack_since[idx] = session_time
+                else:
+                    offtrack_since.pop(idx, None)
+
+                min_dur = self.config.get('min_offtrack_seconds', 0.0)
+                if (current_surface == -1
+                        and idx in offtrack_since
+                        and session_time - offtrack_since[idx] >= min_dur
+                        and session_time > last_logged_time.get(idx, -5) + 2):
                         name = driver['UserName']
                         cust_id = driver['UserID']
                         car_number = driver['CarNumber']
@@ -357,13 +383,14 @@ class IRacingApp:
                             api_endpoint = self.config.get('api_endpoint', '')
                             if api_endpoint:
                                 post_incident(api_endpoint, subsession_id,
-                                              session_type, cust_id, name, timestamp, lap, track_pct)
+                                              session_type, cust_id, name, timestamp, lap, track_pct, corner)
 
                         line = (f"{timestamp} | P{race_pos} | #{car_number} "
-                                f"| {cust_id} | {name}"
-                                f"| Lap {lap} | {track_pct*100:.2f}%")
+                                f"| {cust_id} | {name} "
+                                f"| Lap {lap} | {corner} | {track_pct*100:.2f}%")
                         self.q.put(('incident', line))
                         last_logged_time[idx] = session_time
+                        offtrack_since.pop(idx, None)
 
                 last_surface_state[idx] = current_surface
 

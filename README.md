@@ -21,11 +21,13 @@ Create a `config.json` in the project root:
 
 ```json
 {
-    "api_endpoint": "https://your-server/endpoint"
+    "api_endpoint": "https://your-server/endpoint",
+    "min_offtrack_seconds": 0.0
 }
 ```
 
-Leave `api_endpoint` as an empty string to disable API posting.
+- `api_endpoint` — leave empty to disable API posting
+- `min_offtrack_seconds` — how long a car must be continuously off-track before the incident is logged (0.0 logs immediately)
 
 ## Tools
 
@@ -36,12 +38,13 @@ A dark-mode desktop app that monitors a live iRacing session and logs off-track 
 **Features:**
 - Live connection status showing track name, subsession ID, session type, and live race time
 - Start/Stop logging button (enabled only when connected)
-- Real-time incident feed showing race time, position, car number, cust ID, driver name, lap, and track %
+- Real-time incident feed showing race time, position, car number, cust ID, driver name, lap, corner, and track %
 - Resizable window
-- **App > Settings** menu to edit `config.json` values (API endpoint) without restarting
+- **App > Settings** menu to configure API endpoint and minimum off-track duration without restarting
 - Writes incidents to `incidents_<track>_<HHMMSS>.csv`
-- Optionally POSTs each incident to a REST API endpoint (configured via Settings or `config.json` directly)
+- Optionally POSTs each incident to a REST API endpoint with full incident detail including corner name
 - Correctly resets state on session change (e.g. practice → race) to avoid negative race timestamps
+- Configurable minimum off-track duration to filter out momentary excursions (default 0.0s)
 
 **Usage:**
 ```bash
