@@ -347,14 +347,14 @@ class IRacingApp:
                 current_surface = surfaces[idx]
                 previous_surface = last_surface_state.get(idx, 3)
 
-                if current_surface == -1:
-                    if previous_surface != -1:
+                if current_surface == 0:
+                    if previous_surface != 0:
                         offtrack_since[idx] = session_time
                 else:
                     offtrack_since.pop(idx, None)
 
                 min_dur = self.config.get('min_offtrack_seconds', 0.0)
-                if (current_surface == -1
+                if (current_surface == 0
                         and idx in offtrack_since
                         and session_time - offtrack_since[idx] >= min_dur
                         and session_time > last_logged_time.get(idx, -5) + 2):

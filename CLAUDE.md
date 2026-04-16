@@ -23,7 +23,7 @@ Python tools using pyirsdk to interface with iRacing and generate data for analy
 - `CarIdx`-prefixed fields return arrays indexed by car index
 - Poll at `1/60` seconds to match iRacing's 60Hz telemetry rate
 - `ir['DriverInfo']['Drivers']` gives the full driver list with `CarIdx` mappings
-- Surface state: `-1` = off-track, `0` = not in world, `1` = in pit stall, `2` = approaching pits, `3` = on-track; detect transition `current==-1 and previous!=-1`
+- Surface state: `-1` = not in world, `0` = off-track, `1` = in pit stall, `2` = approaching pits, `3` = on-track; detect transition `current==0 and previous!=0`
 - GUI app uses `threading.Thread` (daemon) + `queue.Queue` to pass messages to the main thread
 - `load_config('config.json')` / `save_config(data)` — read/write `config.json`
 - `self.config` on `IRacingApp` holds live config; background thread reads from it so changes apply without restart
